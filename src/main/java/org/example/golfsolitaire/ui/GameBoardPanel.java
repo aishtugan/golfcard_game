@@ -131,9 +131,6 @@ public class GameBoardPanel extends JPanel {
 
     private int calculateOverlap(int columnAreaHeight, int cardHeight) {
         int cardCount = GolfSolitaireGame.CARDS_PER_COLUMN;
-        if (cardCount <= 1) {
-            return 0;
-        }
 
         int availableStepSpace = columnAreaHeight - cardHeight;
         int defaultOverlap = Math.max(18, cardHeight / 3);
@@ -156,9 +153,9 @@ public class GameBoardPanel extends JPanel {
     }
 
     private void paintColumn(Graphics2D g, CardColumn column, int x, BoardLayout layout) {
-        for (int cardIndex = column.getCards().size() - 1; cardIndex >= 0; cardIndex--) {
-            Card card = column.getCards().get(cardIndex);
-            int visualIndexFromTop = column.getCards().size() - 1 - cardIndex;
+        for (int cardIndex = column.cards().size() - 1; cardIndex >= 0; cardIndex--) {
+            Card card = column.cards().get(cardIndex);
+            int visualIndexFromTop = column.cards().size() - 1 - cardIndex;
             int y = layout.columnStartY + visualIndexFromTop * layout.verticalOverlap;
             Rectangle bounds = new Rectangle(x, y, layout.cardWidth, layout.cardHeight);
             paintCard(g, cardImageService.getCardImage(card).getImage(), bounds);

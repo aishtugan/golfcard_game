@@ -10,6 +10,7 @@ public class Statistics {
     private int totalPlayerGames;
     private int playerWins;
     private int playerLosses;
+    private int playerBestChainRecord;
     private int totalComputerGames;
     private int computerWins;
     private int computerLosses;
@@ -39,6 +40,14 @@ public class Statistics {
         this.playerLosses = playerLosses;
     }
 
+    public int getPlayerBestChainRecord() {
+        return playerBestChainRecord;
+    }
+
+    public void setPlayerBestChainRecord(int playerBestChainRecord) {
+        this.playerBestChainRecord = playerBestChainRecord;
+    }
+
     public int getTotalComputerGames() {
         return totalComputerGames;
     }
@@ -64,11 +73,18 @@ public class Statistics {
     }
 
     public void recordPlayerGame(GameStatus result) {
+        recordPlayerGame(result, 0);
+    }
+
+    public void recordPlayerGame(GameStatus result, int bestChainThisGame) {
         totalPlayerGames++;
         if (result == GameStatus.WON) {
             playerWins++;
         } else if (result == GameStatus.LOST) {
             playerLosses++;
+        }
+        if (bestChainThisGame > playerBestChainRecord) {
+            playerBestChainRecord = bestChainThisGame;
         }
     }
 
@@ -84,7 +100,14 @@ public class Statistics {
     public void recordComputerGame(String strategyId, GameStatus result) {
         recordComputerGame(result);
         if (result == GameStatus.WON || result == GameStatus.LOST) {
-            getComputerStrategyStatistics(strategyId).recordGame(result == GameStatus.WON);
+            getComputerStrategyStatistics(strategyId).recordGame(result == GameStatus.WON, 0);
+        }
+    }
+
+    public void recordComputerGame(String strategyId, GameStatus result, int bestChainThisGame) {
+        recordComputerGame(result);
+        if (result == GameStatus.WON || result == GameStatus.LOST) {
+            getComputerStrategyStatistics(strategyId).recordGame(result == GameStatus.WON, bestChainThisGame);
         }
     }
 
@@ -100,7 +123,12 @@ public class Statistics {
 
     public void recordComputerGames(String strategyId, int wins, int losses) {
         recordComputerGames(wins, losses);
-        getComputerStrategyStatistics(strategyId).recordGames(wins, losses);
+        getComputerStrategyStatistics(strategyId).recordGames(wins, losses, 0);
+    }
+
+    public void recordComputerGames(String strategyId, int wins, int losses, int bestChainRecord) {
+        recordComputerGames(wins, losses);
+        getComputerStrategyStatistics(strategyId).recordGames(wins, losses, bestChainRecord);
     }
 
     public StrategyStatistics getComputerStrategyStatistics(String strategyId) {
@@ -133,6 +161,7 @@ public class Statistics {
         totalPlayerGames = 0;
         playerWins = 0;
         playerLosses = 0;
+        playerBestChainRecord = 0;
         totalComputerGames = 0;
         computerWins = 0;
         computerLosses = 0;
@@ -143,5 +172,13 @@ public class Statistics {
         totalPlayerGames = 0;
         playerWins = 0;
         playerLosses = 0;
+        playerBestChainRecord = 0;
+    }
+
+    public void resetComputerStatistics() {
+        totalComputerGames = 0;
+        computerWins = 0;
+        computerLosses = 0;
+        computerStrategyStatistics.clear();
     }
 }

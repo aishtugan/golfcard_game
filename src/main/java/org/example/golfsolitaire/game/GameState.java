@@ -30,7 +30,7 @@ public class GameState {
     public List<Card> getTableCards() {
         List<Card> tableCards = new ArrayList<>();
         for (CardColumn column : tableColumns) {
-            tableCards.addAll(column.getCards());
+            tableCards.addAll(column.cards());
         }
         return Collections.unmodifiableList(tableCards);
     }
@@ -67,13 +67,12 @@ public class GameState {
         this.activeCard = Objects.requireNonNull(activeCard, "activeCard");
     }
 
-    boolean removeTableCard(Card card) {
+    void removeTableCard(Card card) {
         for (CardColumn column : tableColumns) {
             if (column.removeTopCard(card)) {
-                return true;
+                return;
             }
         }
-        return false;
     }
 
     boolean isTopCard(Card card) {

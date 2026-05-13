@@ -14,18 +14,19 @@ public class AutoPlayer {
         this.strategy = strategy;
     }
 
-    public boolean playOneTurn() {
+    public void playOneTurn() {
         if (game.getState().getStatus() != GameStatus.IN_PROGRESS) {
-            return false;
+            return;
         }
 
         List<Card> availableMoves = game.getAvailableMoves();
         if (!availableMoves.isEmpty()) {
             Card chosenCard = strategy.chooseMove(game.getState(), availableMoves);
-            return game.removeCard(chosenCard);
+            game.removeCard(chosenCard);
+            return;
         }
 
-        return game.drawFromStock() != null;
+        game.drawFromStock();
     }
 
     public void playUntilFinished() {

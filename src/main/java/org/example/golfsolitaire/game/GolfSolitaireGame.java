@@ -13,6 +13,8 @@ public class GolfSolitaireGame {
 
     private final boolean aceKingConnected;
     private GameState state;
+    private int currentChain;
+    private int bestChainThisGame;
 
     public GolfSolitaireGame() {
         this(true);
@@ -50,6 +52,7 @@ public class GolfSolitaireGame {
         }
 
         state = new GameState(tableColumns, stockPile, activeCard);
+        resetChains();
         checkWinLoss();
     }
 
@@ -88,6 +91,10 @@ public class GolfSolitaireGame {
 
         state.removeTableCard(card);
         state.setActiveCard(card);
+        currentChain++;
+        if (currentChain > bestChainThisGame) {
+            bestChainThisGame = currentChain;
+        }
         checkWinLoss();
         return true;
     }
@@ -100,9 +107,41 @@ public class GolfSolitaireGame {
         Card drawnCard = state.drawFromStock().orElse(null);
         if (drawnCard != null) {
             state.setActiveCard(drawnCard);
+            currentChain = 0;
             checkWinLoss();
         }
         return drawnCard;
+    }
+
+    public int getCurrentChain() {
+        return currentChain;
+    }
+
+    public int getBestChainThisGame() {
+        return bestChainThisGame;
+    }
+
+    public GameSnapshot createSnapshot() {
+        List<List<Card>> tableColumns = new ArrayList<>();
+        for (CardColumn column : state.getTableColumns()) {
+            tableColumns.add(new ArrayList<>(column.cards()));
+        }
+        return new GameSnapshot(tableColumns, state.getStockCards(), state.getActiveCard());
+    }
+
+    public void restoreFromSnapshot(GameSnapshot snapshot) {
+        List<CardColumn> tableColumns = new ArrayList<>();
+        for (List<Card> column : snapshot.getTableColumns()) {
+            tableColumns.add(new CardColumn(column));
+        }
+        state = new GameState(tableColumns, snapshot.getStockCards(), snapshot.getActiveCard());
+        resetChains();
+        checkWinLoss();
+    }
+
+    private void resetChains() {
+        currentChain = 0;
+        bestChainThisGame = 0;
     }
 
     public List<Card> getAvailableMoves() {

@@ -35,6 +35,18 @@ class StatisticsTest {
     }
 
     @Test
+    void chainRecordsUseBestValueOnly() {
+        Statistics statistics = new Statistics();
+        statistics.recordPlayerGame(org.example.golfsolitaire.game.GameStatus.LOST, 4);
+        statistics.recordPlayerGame(org.example.golfsolitaire.game.GameStatus.WON, 2);
+        statistics.recordComputerGames("first_available", 4, 6, 8);
+        statistics.recordComputerGames("first_available", 4, 6, 5);
+
+        assertEquals(4, statistics.getPlayerBestChainRecord());
+        assertEquals(8, statistics.getComputerStrategyStatistics("first_available").getBestChainRecord());
+    }
+
+    @Test
     void resetPlayerStatisticsKeepsComputerStrategyStatistics() {
         Statistics statistics = new Statistics();
         statistics.recordComputerGames("first_available", 4, 6);

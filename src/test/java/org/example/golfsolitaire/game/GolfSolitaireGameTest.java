@@ -97,7 +97,7 @@ class GolfSolitaireGameTest {
 
         assertEquals(GolfSolitaireGame.TABLE_COLUMN_COUNT, game.getState().getTableColumns().size());
         for (CardColumn column : game.getState().getTableColumns()) {
-            assertEquals(GolfSolitaireGame.CARDS_PER_COLUMN, column.getCards().size());
+            assertEquals(GolfSolitaireGame.CARDS_PER_COLUMN, column.cards().size());
         }
         assertEquals(16, game.getState().getStockCount());
     }
@@ -128,5 +128,48 @@ class GolfSolitaireGameTest {
 
         assertTrue(aceActiveGame.canRemove(king));
         assertTrue(aceActiveGame.canRemove(two));
+    }
+
+    @Test
+    void chainCountersIncreaseOnTableCardsAndResetOnStockDraw() {
+        Card six = new Card(Suit.CLUBS, Rank.SIX);
+        Card five = new Card(Suit.HEARTS, Rank.FIVE);
+        Card nine = new Card(Suit.SPADES, Rank.NINE);
+        Card king = new Card(Suit.CLUBS, Rank.KING);
+        Card seven = new Card(Suit.DIAMONDS, Rank.SEVEN);
+
+        GameState state = new GameState(List.of(new CardColumn(List.of(six, five)), new CardColumn(List.of(king))), List.of(nine), seven);
+        GolfSolitaireGame game = new GolfSolitaireGame(state, false);
+
+        assertTrue(game.removeCard(six));
+        assertTrue(game.removeCard(five));
+        assertEquals(2, game.getCurrentChain());
+        assertEquals(2, game.getBestChainThisGame());
+
+        game.drawFromStock();
+
+        assertEquals(0, game.getCurrentChain());
+        assertEquals(2, game.getBestChainThisGame());
+    }
+
+    @Test
+    void restoreFromSnapshotRestoresOriginalDealAndResetsChains() {
+        Card six = new Card(Suit.CLUBS, Rank.SIX);
+        Card five = new Card(Suit.HEARTS, Rank.FIVE);
+        Card nine = new Card(Suit.SPADES, Rank.NINE);
+        Card seven = new Card(Suit.DIAMONDS, Rank.SEVEN);
+
+        GameState state = new GameState(List.of(new CardColumn(List.of(six, five))), List.of(nine), seven);
+        GolfSolitaireGame game = new GolfSolitaireGame(state, false);
+        GameSnapshot snapshot = game.createSnapshot();
+
+        assertTrue(game.removeCard(six));
+        game.restoreFromSnapshot(snapshot);
+
+        assertEquals(2, game.getState().getTableCards().size());
+        assertEquals(seven, game.getState().getActiveCard());
+        assertEquals(1, game.getState().getStockCount());
+        assertEquals(0, game.getCurrentChain());
+        assertEquals(0, game.getBestChainThisGame());
     }
 }

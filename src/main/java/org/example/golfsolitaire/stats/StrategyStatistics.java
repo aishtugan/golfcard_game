@@ -4,6 +4,7 @@ public class StrategyStatistics {
     private int games;
     private int wins;
     private int losses;
+    private int bestChainRecord;
 
     public int getGames() {
         return games;
@@ -29,16 +30,25 @@ public class StrategyStatistics {
         this.losses = losses;
     }
 
-    public void recordGame(boolean won) {
+    public int getBestChainRecord() {
+        return bestChainRecord;
+    }
+
+    public void setBestChainRecord(int bestChainRecord) {
+        this.bestChainRecord = bestChainRecord;
+    }
+
+    public void recordGame(boolean won, int bestChainThisGame) {
         games++;
         if (won) {
             wins++;
         } else {
             losses++;
         }
+        updateBestChainRecord(bestChainThisGame);
     }
 
-    public void recordGames(int wins, int losses) {
+    public void recordGames(int wins, int losses, int bestChainRecord) {
         if (wins < 0 || losses < 0) {
             throw new IllegalArgumentException("wins and losses must not be negative");
         }
@@ -46,6 +56,13 @@ public class StrategyStatistics {
         this.games += wins + losses;
         this.wins += wins;
         this.losses += losses;
+        updateBestChainRecord(bestChainRecord);
+    }
+
+    private void updateBestChainRecord(int bestChainThisGame) {
+        if (bestChainThisGame > bestChainRecord) {
+            bestChainRecord = bestChainThisGame;
+        }
     }
 
     public double getWinRate() {
@@ -59,5 +76,6 @@ public class StrategyStatistics {
         games = 0;
         wins = 0;
         losses = 0;
+        bestChainRecord = 0;
     }
 }

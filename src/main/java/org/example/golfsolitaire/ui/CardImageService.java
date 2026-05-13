@@ -3,7 +3,6 @@ package org.example.golfsolitaire.ui;
 import org.example.golfsolitaire.model.Card;
 import org.example.golfsolitaire.model.Suit;
 
-import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -11,7 +10,6 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;

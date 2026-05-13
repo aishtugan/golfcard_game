@@ -1,6 +1,7 @@
 package org.example.golfsolitaire.ui;
 
 import org.example.golfsolitaire.game.AutoPlayer;
+import org.example.golfsolitaire.game.GameSnapshot;
 import org.example.golfsolitaire.game.GameStatus;
 import org.example.golfsolitaire.game.GolfSolitaireGame;
 import org.example.golfsolitaire.model.Card;
@@ -41,6 +42,8 @@ public class MainFrame extends JFrame {
 
     private final JLabel scoreLabel = new JLabel("", SwingConstants.CENTER);
     private final JLabel timeLabel = new JLabel("", SwingConstants.CENTER);
+    private final JLabel currentChainLabel = new JLabel("", SwingConstants.CENTER);
+    private final JLabel bestChainLabel = new JLabel("", SwingConstants.CENTER);
     private final JLabel humanStatisticsLabel = new JLabel("", SwingConstants.LEFT);
     private final JLabel bestStrategyLabel = new JLabel("", SwingConstants.CENTER);
     private final JLabel messageLabel = new JLabel(" ", SwingConstants.CENTER);
@@ -48,14 +51,16 @@ public class MainFrame extends JFrame {
     private final JButton resetGameButton = new JButton("Reset Game");
     private final JButton computerPlayButton = new JButton("New Computer Play");
     private final JButton clearHumanStatisticsButton = new JButton("Clear Human Statistics");
+    private final JButton clearComputerStatisticsButton = new JButton("Clear Computer Statistics");
     private final JButton resetStatisticsButton = new JButton("Reset All Statistics");
+    private final JButton toggleStatisticsButton = new JButton("Hide Statistics");
     private final JTextField batchGamesField = new JTextField("100", 8);
     private final JButton runBatchButton = new JButton("Run Selected Strategy");
     private final JButton runAllStrategiesButton = new JButton("Run All Strategies");
     private final JLabel batchProgressLabel = new JLabel(" ", SwingConstants.CENTER);
     private final JLabel strategyDescriptionLabel = new JLabel("", SwingConstants.CENTER);
     private final DefaultTableModel strategyTableModel = new DefaultTableModel(
-            new Object[]{"Strategy", "Games", "Wins", "Losses", "Win rate"},
+            new Object[]{"Strategy", "Games", "Wins", "Losses", "Win rate", "Best chain"},
             0
     ) {
         @Override
@@ -73,6 +78,8 @@ public class MainFrame extends JFrame {
     private final GameBoardPanel boardPanel = new GameBoardPanel(cardImageService, this::removeTableCard, this::drawFromStock);
 
     private GolfSolitaireGame game = new GolfSolitaireGame();
+    private GameSnapshot initialGameSnapshot;
+    private JPanel statisticsPanel;
     private AutoPlayer autoPlayer;
     private Timer autoPlayTimer;
     private Timer clockTimer;
@@ -94,19 +101,24 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(920, 640));
 
-        JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 10));
+        JPanel topPanel = new JPanel(new GridLayout(1, 4, 10, 10));
         topPanel.setBackground(new Color(74, 40, 18));
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         configureTopLabel(scoreLabel);
         configureTopLabel(timeLabel);
+        configureTopLabel(currentChainLabel);
+        configureTopLabel(bestChainLabel);
         topPanel.add(scoreLabel);
         topPanel.add(timeLabel);
+        topPanel.add(currentChainLabel);
+        topPanel.add(bestChainLabel);
 
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(new Color(74, 40, 18));
         buttonPanel.add(newHumanPlayButton);
         buttonPanel.add(resetGameButton);
         buttonPanel.add(computerPlayButton);
+        buttonPanel.add(toggleStatisticsButton);
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(new Color(74, 40, 18));
@@ -117,7 +129,8 @@ public class MainFrame extends JFrame {
 
         add(topPanel, BorderLayout.NORTH);
         add(boardPanel, BorderLayout.CENTER);
-        add(createStatisticsPanel(), BorderLayout.EAST);
+        statisticsPanel = createStatisticsPanel();
+        add(statisticsPanel, BorderLayout.EAST);
         add(bottomPanel, BorderLayout.SOUTH);
         pack();
         setLocationRelativeTo(null);
@@ -148,6 +161,7 @@ public class MainFrame extends JFrame {
         strategyStatisticsTable.getColumnModel().getColumn(2).setPreferredWidth(60);
         strategyStatisticsTable.getColumnModel().getColumn(3).setPreferredWidth(70);
         strategyStatisticsTable.getColumnModel().getColumn(4).setPreferredWidth(80);
+        strategyStatisticsTable.getColumnModel().getColumn(5).setPreferredWidth(80);
 
         JPanel statsContentPanel = new JPanel(new BorderLayout(0, 10));
         statsContentPanel.setOpaque(false);
@@ -198,6 +212,7 @@ public class MainFrame extends JFrame {
         controlsPanel.add(runAllStrategiesButton);
         controlsPanel.add(batchProgressLabel);
         controlsPanel.add(clearHumanStatisticsButton);
+        controlsPanel.add(clearComputerStatisticsButton);
         controlsPanel.add(resetStatisticsButton);
         return controlsPanel;
     }
@@ -209,10 +224,12 @@ public class MainFrame extends JFrame {
 
     private void wireActions() {
         newHumanPlayButton.addActionListener(event -> startPlayerGame());
-        resetGameButton.addActionListener(event -> startPlayerGame());
+        resetGameButton.addActionListener(event -> resetCurrentGame());
         computerPlayButton.addActionListener(event -> startComputerGame());
         clearHumanStatisticsButton.addActionListener(event -> clearHumanStatistics());
+        clearComputerStatisticsButton.addActionListener(event -> clearComputerStatistics());
         resetStatisticsButton.addActionListener(event -> resetStatistics());
+        toggleStatisticsButton.addActionListener(event -> toggleStatisticsPanel());
         runBatchButton.addActionListener(event -> startComputerGamesBatch(List.of(getSelectedStrategy())));
         runAllStrategiesButton.addActionListener(event -> startComputerGamesBatch(availableStrategies));
         strategySelector.addActionListener(event -> updateStrategyDescription());
@@ -223,6 +240,7 @@ public class MainFrame extends JFrame {
         stopAutoPlay();
         mode = GameMode.PLAYER;
         game = new GolfSolitaireGame();
+        initialGameSnapshot = game.createSnapshot();
         resultRecorded = false;
         gameStartedAtMillis = System.currentTimeMillis();
         finishedElapsedSeconds = -1;
@@ -234,6 +252,7 @@ public class MainFrame extends JFrame {
         stopAutoPlay();
         mode = GameMode.COMPUTER;
         game = new GolfSolitaireGame();
+        initialGameSnapshot = game.createSnapshot();
         GameStrategy selectedStrategy = getSelectedStrategy();
         currentComputerStrategyId = selectedStrategy.getId();
         autoPlayer = new AutoPlayer(game, selectedStrategy);
@@ -330,6 +349,24 @@ public class MainFrame extends JFrame {
         refresh();
     }
 
+    private void clearComputerStatistics() {
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Are you sure you want to clear all computer strategy statistics?",
+                "Clear Computer Statistics",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (choice != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        statistics.resetComputerStatistics();
+        statisticsService.save(statistics);
+        messageLabel.setText("Computer strategy statistics cleared.");
+        refresh();
+    }
+
     private void startComputerGamesBatch(List<GameStrategy> strategiesToRun) {
         Integer gamesToRun = readBatchGamesCount();
         if (gamesToRun == null) {
@@ -354,6 +391,7 @@ public class MainFrame extends JFrame {
                 for (GameStrategy strategy : batchStrategies) {
                     int wins = 0;
                     int losses = 0;
+                    int bestChainRecord = 0;
 
                     for (int i = 1; i <= gamesToRun; i++) {
                         GolfSolitaireGame batchGame = new GolfSolitaireGame();
@@ -366,12 +404,23 @@ public class MainFrame extends JFrame {
                             losses++;
                         }
 
+                        if (batchGame.getBestChainThisGame() > bestChainRecord) {
+                            bestChainRecord = batchGame.getBestChainThisGame();
+                        }
+
                         if (shouldPublishProgress(i, gamesToRun)) {
                             publish("Running " + strategy.getName() + ": " + i + " / " + gamesToRun);
                         }
                     }
 
-                    batchResult.addStrategyResult(new StrategyBatchResult(strategy.getId(), strategy.getName(), gamesToRun, wins, losses));
+                    batchResult.addStrategyResult(new StrategyBatchResult(
+                            strategy.getId(),
+                            strategy.getName(),
+                            gamesToRun,
+                            wins,
+                            losses,
+                            bestChainRecord
+                    ));
                 }
 
                 return batchResult;
@@ -387,7 +436,12 @@ public class MainFrame extends JFrame {
                 try {
                     BatchComputerResult result = get();
                     for (StrategyBatchResult strategyResult : result.strategyResults) {
-                        statistics.recordComputerGames(strategyResult.strategyId, strategyResult.wins, strategyResult.losses);
+                        statistics.recordComputerGames(
+                                strategyResult.strategyId,
+                                strategyResult.wins,
+                                strategyResult.losses,
+                                strategyResult.bestChainRecord
+                        );
                     }
                     statisticsService.save(statistics);
                     batchProgressLabel.setText("Finished");
@@ -448,6 +502,7 @@ public class MainFrame extends JFrame {
         resetGameButton.setEnabled(enabled);
         computerPlayButton.setEnabled(enabled);
         clearHumanStatisticsButton.setEnabled(enabled);
+        clearComputerStatisticsButton.setEnabled(enabled);
         resetStatisticsButton.setEnabled(enabled);
     }
 
@@ -463,9 +518,9 @@ public class MainFrame extends JFrame {
         }
 
         if (mode == GameMode.PLAYER) {
-            statistics.recordPlayerGame(status);
+            statistics.recordPlayerGame(status, game.getBestChainThisGame());
         } else {
-            statistics.recordComputerGame(currentComputerStrategyId, status);
+            statistics.recordComputerGame(currentComputerStrategyId, status, game.getBestChainThisGame());
         }
         statisticsService.save(statistics);
         finishedElapsedSeconds = (System.currentTimeMillis() - gameStartedAtMillis) / 1000;
@@ -480,7 +535,9 @@ public class MainFrame extends JFrame {
         String message = status == GameStatus.WON
                 ? "Congratulations! You won the game."
                 : "No more moves. You lost the game.";
-        String[] options = {"Start New Game", "Reset Current Game", "Exit"};
+        String[] options = status == GameStatus.LOST
+                ? new String[]{"Start New Game", "Reset Current Game", "Let Computer Try This Game", "Exit"}
+                : new String[]{"Start New Game", "Reset Current Game", "Exit"};
 
         int choice = JOptionPane.showOptionDialog(
                 this,
@@ -497,21 +554,65 @@ public class MainFrame extends JFrame {
             startPlayerGame();
         } else if (choice == 1) {
             resetCurrentGame();
-        } else if (choice == 2) {
+        } else if (status == GameStatus.LOST && choice == 2) {
+            letComputerTryCurrentGame();
+        } else if ((status == GameStatus.LOST && choice == 3) || (status == GameStatus.WON && choice == 2)) {
             System.exit(0);
         }
     }
 
     private void resetCurrentGame() {
-        // TODO: store the initial deal order so this can restart the exact same game.
-        startPlayerGame();
-        messageLabel.setText("Reset Current Game starts a new shuffled game for now.");
+        if (initialGameSnapshot == null) {
+            startPlayerGame();
+            return;
+        }
+
+        stopAutoPlay();
+        mode = GameMode.PLAYER;
+        game.restoreFromSnapshot(initialGameSnapshot);
+        resultRecorded = false;
+        gameStartedAtMillis = System.currentTimeMillis();
+        finishedElapsedSeconds = -1;
+        messageLabel.setText("Current game reset to the original deal.");
+        refresh();
+    }
+
+    private void letComputerTryCurrentGame() {
+        if (initialGameSnapshot == null) {
+            messageLabel.setText("No saved game snapshot is available.");
+            return;
+        }
+
+        stopAutoPlay();
+        mode = GameMode.COMPUTER;
+        game.restoreFromSnapshot(initialGameSnapshot);
+        GameStrategy selectedStrategy = getSelectedStrategy();
+        currentComputerStrategyId = selectedStrategy.getId();
+        autoPlayer = new AutoPlayer(game, selectedStrategy);
+        resultRecorded = false;
+        gameStartedAtMillis = System.currentTimeMillis();
+        finishedElapsedSeconds = -1;
+        messageLabel.setText("Computer is trying the same deal with " + selectedStrategy.getName() + ".");
+        refresh();
+
+        autoPlayTimer = new Timer(AUTO_PLAY_DELAY_MS, event -> runComputerTurn());
+        autoPlayTimer.start();
+    }
+
+    private void toggleStatisticsPanel() {
+        boolean showStatistics = !statisticsPanel.isVisible();
+        statisticsPanel.setVisible(showStatistics);
+        toggleStatisticsButton.setText(showStatistics ? "Hide Statistics" : "Show Statistics");
+        revalidate();
+        repaint();
     }
 
     private void refresh() {
         boardPanel.setGame(game);
         boardPanel.setManualMode(mode == GameMode.PLAYER);
         scoreLabel.setText("Score " + getCurrentScore());
+        currentChainLabel.setText("Current chain: " + game.getCurrentChain());
+        bestChainLabel.setText("Best chain: " + game.getBestChainThisGame());
         updateTimeLabel();
         renderStatistics();
     }
@@ -545,7 +646,8 @@ public class MainFrame extends JFrame {
                         + "Games: " + statistics.getTotalPlayerGames() + "<br>"
                         + "Wins: " + statistics.getPlayerWins() + "<br>"
                         + "Losses: " + statistics.getPlayerLosses() + "<br>"
-                        + "Win rate: " + formatRate(statistics.getPlayerWinRate())
+                        + "Win rate: " + formatRate(statistics.getPlayerWinRate()) + "<br>"
+                        + "Best chain record: " + statistics.getPlayerBestChainRecord()
                         + "</html>"
         );
         renderStrategyStatisticsTable();
@@ -569,7 +671,8 @@ public class MainFrame extends JFrame {
                     strategyStatistics.getGames(),
                     strategyStatistics.getWins(),
                     strategyStatistics.getLosses(),
-                    formatRate(strategyStatistics.getWinRate())
+                    formatRate(strategyStatistics.getWinRate()),
+                    strategyStatistics.getBestChainRecord()
             });
         }
     }
@@ -651,13 +754,15 @@ public class MainFrame extends JFrame {
         private final int totalGames;
         private final int wins;
         private final int losses;
+        private final int bestChainRecord;
 
-        private StrategyBatchResult(String strategyId, String strategyName, int totalGames, int wins, int losses) {
+        private StrategyBatchResult(String strategyId, String strategyName, int totalGames, int wins, int losses, int bestChainRecord) {
             this.strategyId = strategyId;
             this.strategyName = strategyName;
             this.totalGames = totalGames;
             this.wins = wins;
             this.losses = losses;
+            this.bestChainRecord = bestChainRecord;
         }
     }
 }

@@ -7,14 +7,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class CardColumn {
-    private final List<Card> cards;
-
+public record CardColumn(List<Card> cards) {
     public CardColumn(List<Card> cards) {
         this.cards = new ArrayList<>(cards);
     }
 
-    public List<Card> getCards() {
+    @Override
+    public List<Card> cards() {
         return Collections.unmodifiableList(cards);
     }
 

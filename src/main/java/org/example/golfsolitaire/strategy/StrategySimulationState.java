@@ -17,7 +17,7 @@ class StrategySimulationState {
     StrategySimulationState(GameState state) {
         columns = new ArrayList<>();
         for (CardColumn column : state.getTableColumns()) {
-            columns.add(new ArrayList<>(column.getCards()));
+            columns.add(new ArrayList<>(column.cards()));
         }
         stockCards = new ArrayDeque<>(state.getStockCards());
         activeCard = state.getActiveCard();
@@ -37,15 +37,14 @@ class StrategySimulationState {
         return new StrategySimulationState(copiedColumns, new ArrayDeque<>(stockCards), activeCard);
     }
 
-    boolean play(Card card) {
+    void play(Card card) {
         for (List<Card> column : columns) {
             if (!column.isEmpty() && column.get(0).equals(card)) {
                 column.remove(0);
                 activeCard = card;
-                return true;
+                return;
             }
         }
-        return false;
     }
 
     boolean drawFromStock() {

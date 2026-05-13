@@ -35,6 +35,7 @@ public class StatisticsService {
             statistics.setTotalPlayerGames(readInt(properties, "totalPlayerGames"));
             statistics.setPlayerWins(readInt(properties, "playerWins"));
             statistics.setPlayerLosses(readInt(properties, "playerLosses"));
+            statistics.setPlayerBestChainRecord(readInt(properties, "playerBestChainRecord"));
             statistics.setTotalComputerGames(readInt(properties, "totalComputerGames"));
             statistics.setComputerWins(readInt(properties, "computerWins"));
             statistics.setComputerLosses(readInt(properties, "computerLosses"));
@@ -51,6 +52,7 @@ public class StatisticsService {
         properties.setProperty("totalPlayerGames", String.valueOf(statistics.getTotalPlayerGames()));
         properties.setProperty("playerWins", String.valueOf(statistics.getPlayerWins()));
         properties.setProperty("playerLosses", String.valueOf(statistics.getPlayerLosses()));
+        properties.setProperty("playerBestChainRecord", String.valueOf(statistics.getPlayerBestChainRecord()));
         properties.setProperty("totalComputerGames", String.valueOf(statistics.getTotalComputerGames()));
         properties.setProperty("computerWins", String.valueOf(statistics.getComputerWins()));
         properties.setProperty("computerLosses", String.valueOf(statistics.getComputerLosses()));
@@ -93,6 +95,7 @@ public class StatisticsService {
             strategyStatistics.setGames(readInt(properties, "strategy." + trimmedStrategyId + ".games"));
             strategyStatistics.setWins(readInt(properties, "strategy." + trimmedStrategyId + ".wins"));
             strategyStatistics.setLosses(readInt(properties, "strategy." + trimmedStrategyId + ".losses"));
+            strategyStatistics.setBestChainRecord(readInt(properties, "strategy." + trimmedStrategyId + ".bestChainRecord"));
             statistics.setComputerStrategyStatistics(trimmedStrategyId, strategyStatistics);
         }
     }
@@ -109,6 +112,7 @@ public class StatisticsService {
             properties.setProperty("strategy." + strategyId + ".games", String.valueOf(strategyStatistics.getGames()));
             properties.setProperty("strategy." + strategyId + ".wins", String.valueOf(strategyStatistics.getWins()));
             properties.setProperty("strategy." + strategyId + ".losses", String.valueOf(strategyStatistics.getLosses()));
+            properties.setProperty("strategy." + strategyId + ".bestChainRecord", String.valueOf(strategyStatistics.getBestChainRecord()));
         }
     }
 }
